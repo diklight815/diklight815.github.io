@@ -134,7 +134,9 @@ const STORAGE_KEYS = {
     CUSTOM_CSS: 'custom_css',
     VIEW_MODE: 'view_mode',
     AI_MODEL: 'ai_model',
-    PREVIOUS_VERSION: 'previous_version'
+    PREVIOUS_VERSION: 'previous_version',
+    AUTO_DELETE_ON_CLOSE: 'auto_delete_on_close',
+    DISABLE_AUTO_SAVE: 'disable_auto_save'
 };
 
 const AI_PROVIDERS = {
@@ -908,8 +910,8 @@ async function handleGenerate() {
         return;
     }
 
-    // Save topic
-    localStorage.setItem(STORAGE_KEYS.LAST_TOPIC, topicInput.value.trim());
+    // Save topic (자동 저장 설정 확인)
+    saveToLocalStorageIfEnabled(STORAGE_KEYS.LAST_TOPIC, topicInput.value.trim());
 
     // Show loading
     showLoading(true);
@@ -931,8 +933,8 @@ async function handleGenerate() {
         switchTab('edit');
         updateStats();
 
-        // Save result
-        localStorage.setItem(STORAGE_KEYS.LAST_RESULT, generatedText);
+        // Save result (자동 저장 설정 확인)
+        saveToLocalStorageIfEnabled(STORAGE_KEYS.LAST_RESULT, generatedText);
         saveToHistory(generatedText);
 
         // Scroll to result
@@ -1489,6 +1491,11 @@ function downloadFile(content, filename, contentType) {
 
 // History Management
 function saveToHistory(content) {
+    // 자동 저장이 비활성화되어 있으면 히스토리 저장 안함
+    if (isAutoSaveDisabled()) {
+        return;
+    }
+
     const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORY) || '[]');
     const newItem = {
         id: Date.now(),
@@ -3116,6 +3123,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // 유사도 검사 탭으로 이동 시 저장된 API 키 미리 로드
+            if (targetSection === 'similarity') {
+                if (typeof loadSavedSimilarityApiKey === 'function') {
+                    loadSavedSimilarityApiKey();
+                }
+            }
+
             // 선택된 탭 저장
             localStorage.setItem('activeMainTab', targetSection);
         });
@@ -3290,6 +3304,18 @@ function analyzeTextSimilarity(text, keywords = []) {
 
 // 유사도 분석 결과 표시
 function displaySimilarityResult(result) {
+    // 분석 유형 배지 업데이트
+    const analysisTypeBadge = document.getElementById('analysisTypeBadge');
+    if (analysisTypeBadge) {
+        if (result.isAiAnalysis) {
+            analysisTypeBadge.textContent = '🤖 AI 분석';
+            analysisTypeBadge.classList.add('ai-analysis');
+        } else {
+            analysisTypeBadge.textContent = '💻 로컬 분석';
+            analysisTypeBadge.classList.remove('ai-analysis');
+        }
+    }
+
     // 점수 원형 그래프 업데이트
     const scoreCircle = document.getElementById('similarityScoreCircle');
     const scoreNumber = document.getElementById('similarityScoreNumber');
@@ -3341,4 +3367,823 @@ function displaySimilarityResult(result) {
             .map(s => `<li>${s}</li>`)
             .join('');
     }
+}
+
+// ===========================
+// AI 기반 유사도 분석 기능
+// ===========================
+
+// AI 유사도 분석용 모델 목록
+const SIMILARITY_AI_MODELS = {
+    openai: [
+        { value: 'gpt-4o-mini', label: 'GPT-4o Mini (경제적)' },
+        { value: 'gpt-4o', label: 'GPT-4o (최고 품질)' },
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (빠름)' }
+    ],
+    gemini: [
+        { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (빠름)' },
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (최신)' },
+        { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (고성능)' }
+    ],
+    claude: [
+        { value: 'claude-3-5-haiku-20241022', label: 'Claude 3.5 Haiku (경제적)' },
+        { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet (균형)' }
+    ]
+};
+
+// 유사도 분석 섹션 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initSimilarityAiSettings();
+});
+
+function initSimilarityAiSettings() {
+    const analysisModeRadios = document.getElementsByName('analysisMode');
+    const aiSettingsSection = document.getElementById('similarityAiSettings');
+    const aiProviderSelect = document.getElementById('similarityAiProvider');
+    const aiModelSelect = document.getElementById('similarityAiModel');
+    const apiKeyInput = document.getElementById('similarityApiKey');
+    const toggleApiKeyBtn = document.getElementById('toggleSimilarityApiKey');
+    const useSameKeyBtn = document.getElementById('useSameApiKey');
+    const runSimilarityBtn = document.getElementById('runSimilarityBtn');
+
+    if (!analysisModeRadios.length || !aiSettingsSection) return;
+
+    // 분석 모드 변경 이벤트
+    analysisModeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (radio.value === 'ai') {
+                aiSettingsSection.classList.remove('hidden');
+                // AI 모드 선택 시 저장된 API 키 자동 불러오기
+                loadSavedSimilarityApiKey();
+            } else {
+                aiSettingsSection.classList.add('hidden');
+            }
+        });
+    });
+
+    // AI 제공자 변경 시 모델 목록 업데이트
+    if (aiProviderSelect && aiModelSelect) {
+        aiProviderSelect.addEventListener('change', () => {
+            updateSimilarityAiModels();
+            loadSavedSimilarityApiKey();
+        });
+        // 초기 모델 목록 설정
+        updateSimilarityAiModels();
+    }
+
+    // API 키 토글
+    if (toggleApiKeyBtn && apiKeyInput) {
+        toggleApiKeyBtn.addEventListener('click', () => {
+            const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+            apiKeyInput.type = type;
+            toggleApiKeyBtn.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    // 블로그 생성기 API 키 복사
+    if (useSameKeyBtn && apiKeyInput) {
+        useSameKeyBtn.addEventListener('click', () => {
+            const generatorProvider = document.getElementById('aiProvider')?.value;
+            const similarityProvider = aiProviderSelect?.value;
+
+            if (generatorProvider === similarityProvider) {
+                const generatorApiKey = document.getElementById('apiKey')?.value;
+                if (generatorApiKey) {
+                    apiKeyInput.value = generatorApiKey;
+                    alert('블로그 생성기의 API 키를 복사했습니다.');
+                } else {
+                    alert('블로그 생성기에 저장된 API 키가 없습니다.');
+                }
+            } else {
+                // 다른 제공자면 해당 제공자의 저장된 키 불러오기
+                const storageKey = `${similarityProvider}_api_key`;
+                const savedKey = localStorage.getItem(storageKey);
+                if (savedKey) {
+                    apiKeyInput.value = savedKey;
+                    alert(`저장된 ${similarityProvider.toUpperCase()} API 키를 불러왔습니다.`);
+                } else {
+                    alert(`저장된 ${similarityProvider.toUpperCase()} API 키가 없습니다.`);
+                }
+            }
+        });
+    }
+
+    // API 키 변경 시 저장
+    if (apiKeyInput) {
+        apiKeyInput.addEventListener('change', () => {
+            const provider = aiProviderSelect?.value || 'openai';
+            const storageKey = `similarity_${provider}_api_key`;
+            localStorage.setItem(storageKey, apiKeyInput.value);
+        });
+        // 저장된 API 키 불러오기
+        loadSavedSimilarityApiKey();
+    }
+
+    // 분석 버튼 이벤트 재정의
+    if (runSimilarityBtn) {
+        // 기존 이벤트 제거 후 새로 추가
+        const newBtn = runSimilarityBtn.cloneNode(true);
+        runSimilarityBtn.parentNode.replaceChild(newBtn, runSimilarityBtn);
+
+        newBtn.addEventListener('click', handleSimilarityAnalysis);
+    }
+}
+
+function updateSimilarityAiModels() {
+    const providerSelect = document.getElementById('similarityAiProvider');
+    const modelSelect = document.getElementById('similarityAiModel');
+
+    if (!providerSelect || !modelSelect) return;
+
+    const provider = providerSelect.value;
+    const models = SIMILARITY_AI_MODELS[provider] || [];
+
+    modelSelect.innerHTML = models
+        .map(m => `<option value="${m.value}">${m.label}</option>`)
+        .join('');
+}
+
+function loadSavedSimilarityApiKey() {
+    const providerSelect = document.getElementById('similarityAiProvider');
+    const apiKeyInput = document.getElementById('similarityApiKey');
+
+    if (!providerSelect || !apiKeyInput) return;
+
+    const provider = providerSelect.value;
+
+    // 1. 먼저 유사도 검사 전용 키 확인
+    const similarityStorageKey = `similarity_${provider}_api_key`;
+    let savedKey = localStorage.getItem(similarityStorageKey);
+
+    // 2. 없으면 블로그 생성기에서 저장한 키 확인
+    if (!savedKey) {
+        const generatorStorageKey = `${provider}_api_key`;
+        savedKey = localStorage.getItem(generatorStorageKey);
+    }
+
+    if (savedKey) {
+        apiKeyInput.value = savedKey;
+    } else {
+        apiKeyInput.value = '';
+    }
+}
+
+// 유사도 분석 핸들러
+async function handleSimilarityAnalysis() {
+    const textInput = document.getElementById('similarityText');
+    const keywordsInput = document.getElementById('similarityKeywords');
+    const resultCard = document.getElementById('similarityResultCard');
+    const runBtn = document.getElementById('runSimilarityBtn') || document.querySelector('#similaritySection .btn-primary');
+
+    const text = textInput?.value.trim();
+    if (!text) {
+        alert('분석할 텍스트를 입력해주세요.');
+        return;
+    }
+
+    if (text.length < 50) {
+        alert('최소 50자 이상의 텍스트를 입력해주세요.');
+        return;
+    }
+
+    const keywords = keywordsInput?.value
+        .split(',')
+        .map(k => k.trim())
+        .filter(k => k.length > 0) || [];
+
+    // 분석 모드 확인
+    const analysisMode = document.querySelector('input[name="analysisMode"]:checked')?.value || 'local';
+
+    if (analysisMode === 'ai') {
+        // AI 분석
+        const apiKeyInput = document.getElementById('similarityApiKey');
+        const providerSelect = document.getElementById('similarityAiProvider');
+        const modelSelect = document.getElementById('similarityAiModel');
+
+        // 저장된 API 키 자동 불러오기 (입력 필드가 비어있을 경우)
+        if (!apiKeyInput?.value.trim()) {
+            loadSavedSimilarityApiKey();
+        }
+
+        const apiKey = apiKeyInput?.value.trim();
+        if (!apiKey) {
+            alert('AI 분석을 위해 API 키를 입력해주세요.');
+            apiKeyInput?.focus();
+            return;
+        }
+
+        const provider = providerSelect?.value || 'openai';
+        const model = modelSelect?.value || 'gpt-4o-mini';
+
+        // 버튼 비활성화 및 로딩 표시
+        if (runBtn) {
+            runBtn.disabled = true;
+            runBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">AI 분석 중...</span>';
+        }
+
+        try {
+            const result = await analyzeSimilarityWithAI(text, keywords, provider, model, apiKey);
+            displaySimilarityResult(result);
+            resultCard?.classList.remove('hidden');
+            resultCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch (error) {
+            console.error('AI similarity analysis error:', error);
+            alert(`AI 분석 중 오류가 발생했습니다: ${error.message}`);
+        } finally {
+            if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<span class="btn-text">유사도 분석 시작</span><span class="btn-icon">🔍</span>';
+            }
+        }
+    } else {
+        // 로컬 분석
+        const result = analyzeTextSimilarity(text, keywords);
+        displaySimilarityResult(result);
+        resultCard?.classList.remove('hidden');
+        resultCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// AI 기반 유사도 분석
+async function analyzeSimilarityWithAI(text, keywords, provider, model, apiKey) {
+    const prompt = buildSimilarityPrompt(text, keywords);
+
+    let response;
+    if (provider === 'openai') {
+        response = await analyzeSimilarityOpenAI(prompt, model, apiKey);
+    } else if (provider === 'gemini') {
+        response = await analyzeSimilarityGemini(prompt, model, apiKey);
+    } else if (provider === 'claude') {
+        response = await analyzeSimilarityClaude(prompt, model, apiKey);
+    } else {
+        throw new Error('지원하지 않는 AI 제공자입니다.');
+    }
+
+    return parseAIAnalysisResult(response, text, keywords);
+}
+
+function buildSimilarityPrompt(text, keywords) {
+    return `다음 텍스트의 독창성과 품질을 분석해주세요.
+
+【분석 대상 텍스트】
+${text}
+
+【분석 요청 항목】
+1. 독창성 점수 (0-100): 표현의 독창성, 창의성 평가
+2. AI 생성 확률 (0-100): AI가 생성한 것으로 보이는 확률
+3. 감지된 일반적/상투적 표현 목록 (쉼표로 구분)
+4. 독특하고 창의적인 표현 비율 (0-100%)
+5. 개선 제안 (3가지 이내)
+${keywords.length > 0 ? `6. 키워드 밀도 분석 (키워드: ${keywords.join(', ')})` : ''}
+
+【응답 형식 - 반드시 아래 JSON 형식으로만 응답】
+{
+  "originalityScore": 숫자,
+  "aiProbability": 숫자,
+  "detectedPhrases": ["표현1", "표현2"],
+  "uniqueWordRatio": 숫자,
+  "keywordDensity": "숫자%",
+  "suggestions": ["제안1", "제안2", "제안3"]
+}`;
+}
+
+async function analyzeSimilarityOpenAI(prompt, model, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [
+                {
+                    role: 'system',
+                    content: '당신은 텍스트 품질과 독창성을 분석하는 전문가입니다. 반드시 요청된 JSON 형식으로만 응답하세요.'
+                },
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 1000
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `OpenAI API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+}
+
+async function analyzeSimilarityGemini(prompt, model, apiKey) {
+    const systemPrompt = '당신은 텍스트 품질과 독창성을 분석하는 전문가입니다. 반드시 요청된 JSON 형식으로만 응답하세요.';
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: fullPrompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 1000
+                }
+            })
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `Gemini API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text.trim();
+}
+
+async function analyzeSimilarityClaude(prompt, model, apiKey) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: model,
+            max_tokens: 1000,
+            messages: [{
+                role: 'user',
+                content: prompt
+            }],
+            system: '당신은 텍스트 품질과 독창성을 분석하는 전문가입니다. 반드시 요청된 JSON 형식으로만 응답하세요.',
+            temperature: 0.3
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `Claude API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text.trim();
+}
+
+function parseAIAnalysisResult(response, text, keywords) {
+    try {
+        // JSON 추출 (마크다운 코드블록 처리)
+        let jsonStr = response;
+        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[1].trim();
+        }
+
+        // JSON 파싱 시도
+        const parsed = JSON.parse(jsonStr);
+
+        // 감지된 표현을 객체 배열로 변환
+        const detectedPhrases = (parsed.detectedPhrases || []).map(phrase => ({
+            phrase: phrase,
+            count: 1
+        }));
+
+        return {
+            originalityScore: Math.min(100, Math.max(0, parsed.originalityScore || 50)),
+            aiProbability: Math.min(100, Math.max(0, parsed.aiProbability || 50)),
+            uniqueWordRatio: Math.min(100, Math.max(0, parsed.uniqueWordRatio || 50)),
+            commonPhraseCount: detectedPhrases.length,
+            detectedPhrases: detectedPhrases,
+            keywordDensity: parsed.keywordDensity || '0',
+            suggestions: parsed.suggestions || ['분석 결과를 확인하세요.'],
+            isAiAnalysis: true
+        };
+    } catch (error) {
+        console.error('AI response parsing error:', error);
+        console.log('Raw response:', response);
+
+        // 파싱 실패 시 로컬 분석으로 폴백
+        const localResult = analyzeTextSimilarity(text, keywords);
+        localResult.suggestions.unshift('AI 응답 파싱에 실패하여 로컬 분석 결과를 표시합니다.');
+        return localResult;
+    }
+}
+
+// ===========================
+// SEO 추천 제목 생성 기능
+// ===========================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSeoTitleGenerator();
+});
+
+function initSeoTitleGenerator() {
+    const generateTitlesBtn = document.getElementById('generateTitlesBtn');
+    const closeTitlesBtn = document.getElementById('closeTitlesBtn');
+    const suggestedTitles = document.getElementById('suggestedTitles');
+    const titlesList = document.getElementById('titlesList');
+    const topicInput = document.getElementById('topic');
+
+    if (!generateTitlesBtn || !suggestedTitles) return;
+
+    // 제목 생성 버튼 클릭
+    generateTitlesBtn.addEventListener('click', async () => {
+        const topic = topicInput?.value.trim();
+        if (!topic) {
+            alert('먼저 블로그 주제를 입력해주세요.');
+            topicInput?.focus();
+            return;
+        }
+
+        const provider = aiProviderSelect?.value;
+        if (provider === 'template') {
+            // 템플릿 모드일 때는 기본 제목 생성
+            const titles = generateLocalTitles(topic);
+            displayTitles(titles);
+            return;
+        }
+
+        const apiKey = apiKeyInput?.value.trim();
+        if (!apiKey) {
+            alert('AI 제목 생성을 위해 API 키를 입력해주세요.');
+            apiKeyInput?.focus();
+            return;
+        }
+
+        // 로딩 표시
+        suggestedTitles.classList.remove('hidden');
+        titlesList.innerHTML = `
+            <div class="titles-loading">
+                <div class="spinner-small"></div>
+                <span>AI가 SEO 최적화 제목을 생성 중...</span>
+            </div>
+        `;
+
+        try {
+            const keywords = keywordsInput?.value.trim();
+            const titles = await generateAITitles(topic, keywords, provider, apiKey);
+            displayTitles(titles);
+        } catch (error) {
+            console.error('Title generation error:', error);
+            titlesList.innerHTML = `
+                <div class="titles-error">
+                    <p>제목 생성 중 오류가 발생했습니다: ${error.message}</p>
+                    <p>로컬 제목을 대신 표시합니다.</p>
+                </div>
+            `;
+            // 폴백으로 로컬 제목 생성
+            const titles = generateLocalTitles(topic);
+            displayTitles(titles);
+        }
+    });
+
+    // 닫기 버튼
+    if (closeTitlesBtn) {
+        closeTitlesBtn.addEventListener('click', () => {
+            suggestedTitles.classList.add('hidden');
+        });
+    }
+}
+
+// 로컬 제목 생성 (API 없이)
+function generateLocalTitles(topic) {
+    const templates = [
+        `${topic}: 완벽 가이드 2024`,
+        `${topic} 시작하기 - 초보자를 위한 A to Z`,
+        `${topic}의 모든 것: 핵심 정리`,
+        `왜 ${topic}이 중요한가? 5가지 이유`,
+        `${topic} 마스터하기: 전문가 팁`
+    ];
+    return templates;
+}
+
+// AI 제목 생성
+async function generateAITitles(topic, keywords, provider, apiKey) {
+    const model = aiModelSelect?.value || 'gpt-4o-mini';
+    const prompt = buildTitlePrompt(topic, keywords);
+
+    let response;
+    if (provider === 'openai') {
+        response = await generateTitlesOpenAI(prompt, model, apiKey);
+    } else if (provider === 'gemini') {
+        response = await generateTitlesGemini(prompt, model, apiKey);
+    } else if (provider === 'claude') {
+        response = await generateTitlesClaude(prompt, model, apiKey);
+    } else {
+        throw new Error('지원하지 않는 AI 제공자입니다.');
+    }
+
+    return parseTitleResponse(response);
+}
+
+function buildTitlePrompt(topic, keywords) {
+    return `다음 블로그 주제에 대해 SEO 최적화된 제목 5개를 생성해주세요.
+
+【주제】
+${topic}
+
+${keywords ? `【키워드】\n${keywords}\n` : ''}
+【요구사항】
+1. 검색엔진 최적화(SEO)에 적합한 제목
+2. 클릭을 유도하는 매력적인 표현
+3. 30-60자 내외의 적절한 길이
+4. 숫자나 강조 표현 활용 (예: "5가지", "완벽 가이드", "핵심")
+5. 한국어 블로그에 적합한 자연스러운 표현
+
+【응답 형식 - 반드시 JSON 배열로만 응답】
+["제목1", "제목2", "제목3", "제목4", "제목5"]`;
+}
+
+async function generateTitlesOpenAI(prompt, model, apiKey) {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: [
+                {
+                    role: 'system',
+                    content: 'SEO 전문가로서 검색 최적화된 블로그 제목을 생성합니다. 반드시 JSON 배열 형식으로만 응답하세요.'
+                },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.8,
+            max_tokens: 500
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `OpenAI API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+}
+
+async function generateTitlesGemini(prompt, model, apiKey) {
+    const systemPrompt = 'SEO 전문가로서 검색 최적화된 블로그 제목을 생성합니다. 반드시 JSON 배열 형식으로만 응답하세요.';
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: fullPrompt }] }],
+                generationConfig: { temperature: 0.8, maxOutputTokens: 500 }
+            })
+        }
+    );
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `Gemini API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.candidates[0].content.parts[0].text.trim();
+}
+
+async function generateTitlesClaude(prompt, model, apiKey) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+            model: model,
+            max_tokens: 500,
+            messages: [{ role: 'user', content: prompt }],
+            system: 'SEO 전문가로서 검색 최적화된 블로그 제목을 생성합니다. 반드시 JSON 배열 형식으로만 응답하세요.',
+            temperature: 0.8
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || `Claude API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.content[0].text.trim();
+}
+
+function parseTitleResponse(response) {
+    try {
+        // JSON 추출
+        let jsonStr = response;
+        const jsonMatch = response.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[0];
+        }
+
+        const titles = JSON.parse(jsonStr);
+        if (Array.isArray(titles) && titles.length > 0) {
+            return titles.slice(0, 5); // 최대 5개
+        }
+        throw new Error('Invalid response format');
+    } catch (error) {
+        console.error('Title parsing error:', error);
+        // 줄바꿈으로 분리된 형식 시도
+        const lines = response.split('\n').filter(line => line.trim() && !line.startsWith('[') && !line.startsWith(']'));
+        if (lines.length >= 3) {
+            return lines.slice(0, 5).map(line => line.replace(/^[\d\.\-\*]+\s*/, '').replace(/["']/g, '').trim());
+        }
+        throw new Error('제목 파싱 실패');
+    }
+}
+
+function displayTitles(titles) {
+    const titlesList = document.getElementById('titlesList');
+    const suggestedTitles = document.getElementById('suggestedTitles');
+    const topicInput = document.getElementById('topic');
+
+    if (!titlesList) return;
+
+    suggestedTitles.classList.remove('hidden');
+
+    titlesList.innerHTML = titles.map((title, index) => `
+        <div class="title-item" data-title="${title.replace(/"/g, '&quot;')}">
+            <span class="title-number">${index + 1}</span>
+            <span class="title-text">${title}</span>
+        </div>
+    `).join('');
+
+    // 제목 클릭 이벤트
+    titlesList.querySelectorAll('.title-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const selectedTitle = item.dataset.title;
+            if (topicInput) {
+                topicInput.value = selectedTitle;
+                suggestedTitles.classList.add('hidden');
+            }
+        });
+    });
+}
+
+// ===========================
+// 설정 기능 (자동 삭제 / 자동 저장 비활성화)
+// ===========================
+
+// 설정 상태를 확인하는 헬퍼 함수
+function isAutoSaveDisabled() {
+    return localStorage.getItem(STORAGE_KEYS.DISABLE_AUTO_SAVE) === 'true';
+}
+
+function isAutoDeleteOnClose() {
+    return localStorage.getItem(STORAGE_KEYS.AUTO_DELETE_ON_CLOSE) === 'true';
+}
+
+// 자동 저장이 활성화된 경우에만 저장하는 래퍼 함수
+function saveToLocalStorageIfEnabled(key, value) {
+    // 설정 자체는 항상 저장 (설정을 저장해야 사용자 선택이 유지됨)
+    const alwaysSaveKeys = [
+        STORAGE_KEYS.AUTO_DELETE_ON_CLOSE,
+        STORAGE_KEYS.DISABLE_AUTO_SAVE,
+        STORAGE_KEYS.AI_PROVIDER,
+        STORAGE_KEYS.OPENAI_API_KEY,
+        STORAGE_KEYS.GEMINI_API_KEY,
+        STORAGE_KEYS.CLAUDE_API_KEY,
+        'openai_model',
+        'gemini_model',
+        'claude_model'
+    ];
+
+    if (alwaysSaveKeys.includes(key)) {
+        localStorage.setItem(key, value);
+        return true;
+    }
+
+    // 자동 저장이 비활성화되어 있으면 저장하지 않음
+    if (isAutoSaveDisabled()) {
+        return false;
+    }
+
+    localStorage.setItem(key, value);
+    return true;
+}
+
+// 설정 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    initSettings();
+});
+
+function initSettings() {
+    const settingsToggle = document.getElementById('settingsToggle');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const autoDeleteCheckbox = document.getElementById('autoDeleteOnClose');
+    const disableAutoSaveCheckbox = document.getElementById('disableAutoSave');
+
+    if (!settingsToggle || !settingsPanel) return;
+
+    // 저장된 설정 불러오기
+    if (autoDeleteCheckbox) {
+        autoDeleteCheckbox.checked = isAutoDeleteOnClose();
+    }
+    if (disableAutoSaveCheckbox) {
+        disableAutoSaveCheckbox.checked = isAutoSaveDisabled();
+    }
+
+    // 설정 토글 버튼
+    settingsToggle.addEventListener('click', () => {
+        settingsPanel.classList.toggle('hidden');
+        const arrow = settingsToggle.querySelector('.settings-arrow');
+        if (arrow) {
+            arrow.textContent = settingsPanel.classList.contains('hidden') ? '▼' : '▲';
+        }
+    });
+
+    // 자동 삭제 설정 변경
+    if (autoDeleteCheckbox) {
+        autoDeleteCheckbox.addEventListener('change', () => {
+            localStorage.setItem(STORAGE_KEYS.AUTO_DELETE_ON_CLOSE, autoDeleteCheckbox.checked);
+            if (autoDeleteCheckbox.checked) {
+                showSettingsNotification('탭을 닫으면 모든 데이터가 삭제됩니다');
+            }
+        });
+    }
+
+    // 자동 저장 비활성화 설정 변경
+    if (disableAutoSaveCheckbox) {
+        disableAutoSaveCheckbox.addEventListener('change', () => {
+            localStorage.setItem(STORAGE_KEYS.DISABLE_AUTO_SAVE, disableAutoSaveCheckbox.checked);
+            if (disableAutoSaveCheckbox.checked) {
+                showSettingsNotification('자동 저장이 비활성화되었습니다');
+            } else {
+                showSettingsNotification('자동 저장이 활성화되었습니다');
+            }
+        });
+    }
+
+    // 탭 닫을 때 자동 삭제 처리
+    window.addEventListener('beforeunload', handleAutoDeleteOnClose);
+}
+
+// 탭 닫을 때 데이터 삭제
+function handleAutoDeleteOnClose() {
+    if (isAutoDeleteOnClose()) {
+        // API 키와 설정을 제외한 모든 데이터 삭제
+        const keysToKeep = [
+            STORAGE_KEYS.AUTO_DELETE_ON_CLOSE,
+            STORAGE_KEYS.DISABLE_AUTO_SAVE,
+            STORAGE_KEYS.OPENAI_API_KEY,
+            STORAGE_KEYS.GEMINI_API_KEY,
+            STORAGE_KEYS.CLAUDE_API_KEY
+        ];
+
+        Object.values(STORAGE_KEYS).forEach(key => {
+            if (!keysToKeep.includes(key)) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        // 히스토리 삭제
+        localStorage.removeItem(STORAGE_KEYS.HISTORY);
+
+        // 커스텀 클래스 삭제
+        localStorage.removeItem('custom_classes');
+
+        // 활성 탭 정보 삭제
+        localStorage.removeItem('activeMainTab');
+    }
+}
+
+// 설정 알림 표시
+function showSettingsNotification(message) {
+    // 기존 알림 제거
+    const existingNotification = document.querySelector('.settings-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = 'settings-notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // 애니메이션 후 제거
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
 }
