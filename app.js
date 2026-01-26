@@ -3836,7 +3836,7 @@ function initSeoTitleGenerator() {
             const titles = await generateAITitles(topic, keywords, provider, apiKey);
             displayTitles(titles);
         } catch (error) {
-            console.error('Title generation error:', error);
+            console.error('Title generation error:', error.message);
             titlesList.innerHTML = `
                 <div class="titles-error">
                     <p>제목 생성 중 오류가 발생했습니다: ${error.message}</p>
@@ -3860,7 +3860,7 @@ function initSeoTitleGenerator() {
 // 로컬 제목 생성 (API 없이)
 function generateLocalTitles(topic) {
     const templates = [
-        `${topic}: 완벽 가이드 2024`,
+        `${topic}: 완벽 가이드 2026`,
         `${topic} 시작하기 - 초보자를 위한 A to Z`,
         `${topic}의 모든 것: 핵심 정리`,
         `왜 ${topic}이 중요한가? 5가지 이유`,
