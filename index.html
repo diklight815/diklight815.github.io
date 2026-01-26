@@ -167,7 +167,25 @@
                         <span class="label-text">블로그 주제</span>
                         <span class="required">*</span>
                     </label>
-                    <input type="text" id="topic" class="input" placeholder="예: 웹 개발 초보자를 위한 JavaScript 입문" required>
+                    <div class="input-group">
+                        <input type="text" id="topic" class="input" placeholder="예: 웹 개발 초보자를 위한 JavaScript 입문"
+                            required>
+                        <button id="generateTitlesBtn" class="toggle-btn generate-titles-btn" type="button"
+                            title="SEO 최적화 제목 5개 생성">
+                            ✨ 제목 추천
+                        </button>
+                    </div>
+                    <!-- SEO 추천 제목 영역 -->
+                    <div id="suggestedTitles" class="suggested-titles hidden">
+                        <div class="suggested-titles-header">
+                            <span class="suggested-titles-label">🎯 SEO 추천 제목</span>
+                            <button id="closeTitlesBtn" class="close-titles-btn" type="button">✕</button>
+                        </div>
+                        <div id="titlesList" class="titles-list">
+                            <!-- 제목들이 여기에 표시됩니다 -->
+                        </div>
+                        <p class="titles-hint">💡 제목을 클릭하면 주제에 적용됩니다</p>
+                    </div>
                 </div>
 
                 <!-- Keywords Section -->
@@ -696,6 +714,15 @@ strong, em, a, code, pre, hr, img
                     <p class="section-desc">직접 작성한 글이나 AI 생성 글의 독창성을 분석합니다</p>
                 </div>
 
+                <!-- AI 분석 안내 배너 -->
+                <div class="ai-info-banner">
+                    <span class="ai-info-icon">🤖</span>
+                    <span class="ai-info-text">
+                        <strong>AI 분석도 가능합니다!</strong>
+                        더 정확한 분석을 원하시면 아래에서 'AI 분석' 모드를 선택하세요.
+                    </span>
+                </div>
+
                 <!-- 텍스트 입력 영역 -->
                 <div class="section">
                     <label for="similarityText" class="label">
@@ -720,6 +747,67 @@ strong, em, a, code, pre, hr, img
                     <input type="text" id="similarityKeywords" class="input" placeholder="예: 인공지능, AI, 머신러닝">
                 </div>
 
+                <!-- 분석 모드 선택 -->
+                <div class="section">
+                    <label class="label">
+                        <span class="label-text">분석 방식</span>
+                    </label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="analysisMode" value="local" class="radio-input" checked>
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">로컬 분석 (무료)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="analysisMode" value="ai" class="radio-input">
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">AI 분석 (정확도 높음)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- AI 설정 (AI 분석 모드일 때만 표시) -->
+                <div id="similarityAiSettings" class="section ai-settings-section hidden">
+                    <div class="ai-settings-header">
+                        <span class="ai-settings-icon">⚙️</span>
+                        <span class="ai-settings-title">AI 설정</span>
+                    </div>
+
+                    <div class="ai-settings-grid">
+                        <div class="ai-setting-item">
+                            <label for="similarityAiProvider" class="setting-label">AI 제공자</label>
+                            <select id="similarityAiProvider" class="setting-select select">
+                                <option value="">선택</option>
+                                <option value="openai">OpenAI (GPT)</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="claude">Anthropic Claude</option>
+                            </select>
+                        </div>
+
+                        <div class="ai-setting-item">
+                            <label for="similarityAiModel" class="setting-label">모델</label>
+                            <select id="similarityAiModel" class="setting-select select">
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ai-setting-item full-width">
+                        <label for="similarityApiKey" class="setting-label">API 키</label>
+                        <div class="api-key-wrapper input-group">
+                            <input type="password" id="similarityApiKey" class="setting-input input"
+                                placeholder="API 키를 입력하세요">
+                            <button type="button" id="toggleSimilarityApiKey" class="toggle-api-key-btn toggle-btn"
+                                title="API 키 보기/숨기기">
+                                👁️
+                            </button>
+                        </div>
+                        <p class="setting-hint">블로그 생성기에서 이미 API 키를 등록했다면 자동으로 불러옵니다</p>
+                    </div>
+                </div>
+
                 <!-- 분석 버튼 -->
                 <button id="runSimilarityBtn" class="btn-primary">
                     <span class="btn-text">유사도 분석 시작</span>
@@ -731,6 +819,7 @@ strong, em, a, code, pre, hr, img
             <div id="similarityResultCard" class="card result-card hidden">
                 <div class="result-header">
                     <h2 class="result-title">📊 분석 결과</h2>
+                    <span id="analysisTypeBadge" class="analysis-type-badge">로컬 분석</span>
                 </div>
 
                 <!-- 독창성 점수 -->
@@ -811,12 +900,43 @@ strong, em, a, code, pre, hr, img
 
 
 
+        <!-- Settings Section -->
+        <div class="settings-section">
+            <button id="settingsToggle" class="settings-toggle" type="button">
+                <span class="settings-icon">⚙️</span>
+                <span class="settings-text">설정</span>
+                <span class="settings-arrow">▼</span>
+            </button>
+            <div id="settingsPanel" class="settings-panel hidden">
+                <div class="settings-group">
+                    <label class="settings-item">
+                        <span class="settings-label">
+                            <span class="setting-icon">🗑️</span>
+                            <span class="setting-text">탭 닫으면 자동 삭제</span>
+                        </span>
+                        <span class="setting-hint">브라우저 탭을 닫을 때 모든 데이터 삭제</span>
+                        <input type="checkbox" id="autoDeleteOnClose" class="settings-checkbox">
+                        <span class="toggle-switch"></span>
+                    </label>
+                    <label class="settings-item">
+                        <span class="settings-label">
+                            <span class="setting-icon">💾</span>
+                            <span class="setting-text">자동 저장 비활성화</span>
+                        </span>
+                        <span class="setting-hint">주제, 결과, 히스토리 자동 저장 끄기</span>
+                        <input type="checkbox" id="disableAutoSave" class="settings-checkbox">
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
                 <!-- <p class="footer-text">
                     🔓 오픈소스 프로젝트 ·
-                    <a href="https://github.com/yourusername/blog-draft-generator" target="_blank"
+                    <a href="https://github.com/diklight815/diklight815.github.io" target="_blank"
                         rel="noopener noreferrer" class="footer-link">
                         GitHub에서 코드 보기
                     </a>
@@ -874,7 +994,7 @@ strong, em, a, code, pre, hr, img
                     <p class="security-note">❌ 중간 서버 없음 · ❌ 데이터 수집 없음</p>
                 </div>
 
-                <div class="security-section">
+                <!-- <div class="security-section">
                     <h3 class="security-section-title">
                         <span class="section-icon">🔓</span>
                         오픈소스로 확인 가능
@@ -887,7 +1007,7 @@ strong, em, a, code, pre, hr, img
                         </a>를 확인하실 수 있습니다.
                         API 키가 어떻게 처리되는지 직접 검증하실 수 있습니다.
                     </p>
-                </div>
+                </div> -->
 
                 <div class="security-section">
                     <h3 class="security-section-title">
