@@ -499,6 +499,7 @@ strong, em, a, code, pre, hr, img
                                 <div class="metric-bar-fill" id="seoTitleBar"></div>
                             </div>
                             <p class="metric-description" id="seoTitleDesc">제목이 감지되지 않았습니다</p>
+                            <div class="metric-action hidden" id="seoTitleAction"></div>
                         </div>
 
                         <!-- Content Length -->
@@ -512,6 +513,7 @@ strong, em, a, code, pre, hr, img
                                 <div class="metric-bar-fill" id="seoContentBar"></div>
                             </div>
                             <p class="metric-description" id="seoContentDesc">최소 300자 권장</p>
+                            <div class="metric-action hidden" id="seoContentAction"></div>
                         </div>
 
                         <!-- Keyword Density -->
@@ -525,6 +527,7 @@ strong, em, a, code, pre, hr, img
                                 <div class="metric-bar-fill" id="seoKeywordBar"></div>
                             </div>
                             <p class="metric-description" id="seoKeywordDesc">키워드가 입력되지 않았습니다</p>
+                            <div class="metric-action hidden" id="seoKeywordAction"></div>
                         </div>
 
                         <!-- Headings Structure -->
@@ -538,6 +541,7 @@ strong, em, a, code, pre, hr, img
                                 <div class="metric-bar-fill" id="seoHeadingBar"></div>
                             </div>
                             <p class="metric-description" id="seoHeadingDesc">헤딩이 감지되지 않았습니다</p>
+                            <div class="metric-action hidden" id="seoHeadingAction"></div>
                         </div>
 
                         <!-- Readability -->
@@ -551,12 +555,41 @@ strong, em, a, code, pre, hr, img
                                 <div class="metric-bar-fill" id="seoReadabilityBar"></div>
                             </div>
                             <p class="metric-description" id="seoReadabilityDesc">평가 중...</p>
+                            <div class="metric-action hidden" id="seoReadabilityAction"></div>
+                        </div>
+
+                        <!-- Meta Description -->
+                        <div class="seo-metric" id="seoMetaMetric">
+                            <div class="metric-header">
+                                <span class="metric-icon">📋</span>
+                                <span class="metric-name">메타 설명</span>
+                                <span class="metric-score" id="seoMetaScore">0/20</span>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="metric-bar-fill" id="seoMetaBar"></div>
+                            </div>
+                            <p class="metric-description" id="seoMetaDesc">메타 설명을 생성하세요</p>
+                            <div class="metric-action" id="seoMetaAction">
+                                <button type="button" class="seo-action-btn" data-action="generateMeta">
+                                    <span class="action-icon">✨</span>
+                                    <span class="action-text">메타 설명 3개 생성</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="seo-recommendations" id="seoRecommendations">
                         <h4 class="recommendations-title">💡 개선 제안</h4>
                         <ul class="recommendations-list" id="seoRecommendationsList"></ul>
+                    </div>
+
+                    <!-- SEO Action Result Modal -->
+                    <div id="seoActionResult" class="seo-action-result hidden">
+                        <div class="action-result-header">
+                            <h4 class="action-result-title" id="actionResultTitle">AI 개선 제안</h4>
+                            <button type="button" class="action-result-close" id="closeActionResult">✕</button>
+                        </div>
+                        <div class="action-result-content" id="actionResultContent"></div>
                     </div>
                 </div>
 
@@ -813,6 +846,16 @@ strong, em, a, code, pre, hr, img
                     <span class="btn-text">유사도 분석 시작</span>
                     <span class="btn-icon">🔍</span>
                 </button>
+            </div>
+
+            <!-- AdSense 광고 - 하단 배너 -->
+            <div id="ad-bottom" class="ad-container ad-bottom">
+                <!-- 실제 AdSense 광고 -->
+                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6310358819320463"
+                    data-ad-slot="9787596655" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                <script>
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
             </div>
 
             <!-- 분석 결과 카드 -->
