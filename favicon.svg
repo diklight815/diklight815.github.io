@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="url(#grad)"/>
+  <!-- Pencil/Edit icon -->
+  <g fill="white" transform="translate(25, 25) scale(0.5)">
+    <!-- Pencil body -->
+    <path d="M70.7 14.3c-1.9-1.9-5-1.9-6.9 0L20 58.1V70h11.9l43.8-43.8c1.9-1.9 1.9-5 0-6.9l-5-5zM29.7 65H25v-4.7L60 25.3l4.7 4.7L29.7 65z"/>
+    <!-- Sparkle -->
+    <circle cx="75" cy="25" r="5" fill="#fbbf24"/>
+    <circle cx="85" cy="15" r="3" fill="#fbbf24"/>
+  </g>
+  <!-- AI sparkle -->
+  <text x="78" y="28" font-size="16" fill="#fbbf24">✨</text>
+</svg>

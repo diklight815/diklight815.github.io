@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>연락처 | AI 블로그 도구</title>
+    <meta name="description" content="AI 블로그 도구에 문의하세요. 서비스 관련 질문, 버그 신고, 기능 제안 등을 받습니다.">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="연락처 | AI 블로그 도구">
+    <meta property="og:description" content="AI 블로그 도구에 문의하세요.">
+    <meta property="og:url" content="https://aiblog.o-r.kr/contact.html">
+
+    <link rel="canonical" href="https://aiblog.o-r.kr/contact.html">
+    <meta name="theme-color" content="#8b5cf6">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/page.css">
+</head>
+
+<body>
+    <div class="background-gradient"></div>
+
+    <!-- 사이트 헤더 (common.js에서 동적 로드) -->
+    <div id="site-header-placeholder"></div>
+
+    <main class="page-container">
+        <div class="page-content">
+            <div class="page-hero">
+                <h1 class="page-hero-title">연락처</h1>
+                <p class="page-hero-subtitle">궁금한 점이 있으시면 언제든 연락해 주세요</p>
+            </div>
+
+            <div class="contact-info">
+                <div class="contact-card">
+                    <div class="contact-card-icon">📧</div>
+                    <h3 class="contact-card-title">이메일</h3>
+                    <p class="contact-card-value">
+                        <a href="mailto:diklight815@gmail.com">diklight815@gmail.com</a>
+                    </p>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-card-icon">⏰</div>
+                    <h3 class="contact-card-title">응답 시간</h3>
+                    <p class="contact-card-value">평일 기준 1-2일 이내</p>
+                </div>
+            </div>
+
+            <section class="contact-section">
+                <h2>문의 유형</h2>
+                <div class="inquiry-types">
+                    <div class="inquiry-card">
+                        <span class="inquiry-icon">❓</span>
+                        <h3>서비스 이용 문의</h3>
+                        <p>사용 방법, API 키 설정, 기능 사용법 등에 대한 질문</p>
+                        <p class="inquiry-tip">먼저 <a href="/docs.html">사용 가이드</a>를 확인해 보세요!</p>
+                    </div>
+                    <div class="inquiry-card">
+                        <span class="inquiry-icon">🐛</span>
+                        <h3>버그 신고</h3>
+                        <p>서비스 이용 중 발견한 오류나 문제점 신고</p>
+                        <p class="inquiry-tip">오류 메시지와 재현 방법을 함께 알려주시면 빠른 해결이 가능합니다.</p>
+                    </div>
+                    <div class="inquiry-card">
+                        <span class="inquiry-icon">💡</span>
+                        <h3>기능 제안</h3>
+                        <p>새로운 기능 아이디어나 개선 사항 제안</p>
+                        <p class="inquiry-tip">여러분의 아이디어로 서비스가 더 좋아집니다!</p>
+                    </div>
+                    <div class="inquiry-card">
+                        <span class="inquiry-icon">🤝</span>
+                        <h3>제휴/협력</h3>
+                        <p>비즈니스 제휴, 협력, 후원 관련 문의</p>
+                        <p class="inquiry-tip">구체적인 제안 내용을 함께 보내주세요.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="contact-section">
+                <h2>자주 묻는 질문</h2>
+                <p>문의 전에 자주 묻는 질문을 확인해 보세요.</p>
+                <a href="/docs.html#faq" class="btn btn-secondary">FAQ 보기 →</a>
+            </section>
+
+            <section class="contact-section contact-cta">
+                <h2>지금 바로 문의하세요</h2>
+                <p>아래 이메일로 문의 내용을 보내주시면 빠르게 답변드리겠습니다.</p>
+                <a href="mailto:diklight815@gmail.com?subject=[AI 블로그 도구 문의]" class="btn btn-primary btn-lg">
+                    이메일 보내기 →
+                </a>
+            </section>
+        </div>
+    </main>
+
+    <!-- 사이트 푸터 (common.js에서 동적 로드) -->
+    <div id="site-footer-placeholder"></div>
+
+    <script src="js/common.js"></script>
+    <style>
+        .contact-section {
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .contact-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .contact-section p {
+            color: var(--color-text-muted);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .inquiry-types {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-lg);
+        }
+
+        .inquiry-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+        }
+
+        .inquiry-icon {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .inquiry-card h3 {
+            font-size: 1.1rem;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .inquiry-card p {
+            font-size: 0.9rem;
+            color: var(--color-text-muted);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .inquiry-tip {
+            font-size: 0.85rem !important;
+            color: var(--color-primary-light) !important;
+        }
+
+        .inquiry-tip a {
+            color: var(--color-primary-light);
+            text-decoration: underline;
+        }
+
+        .contact-cta {
+            text-align: center;
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-2xl);
+        }
+
+        .contact-cta h2 {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .contact-cta p {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        @media (max-width: 768px) {
+            .inquiry-types {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</body>
+
+</html>
