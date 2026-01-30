@@ -16,21 +16,21 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://aiblog.o-r.kr/app.html">
+    <meta property="og:url" content="https://diklight815.github.io/app.html">
     <meta property="og:title" content="AI 블로그 생성 도구 - 무료 온라인 글쓰기 | AI 블로그 도구">
     <meta property="og:description" content="주제만 입력하면 AI가 자동으로 블로그 초안을 생성합니다. 무료로 사용 가능한 스마트 블로그 작성 도구입니다.">
-    <meta property="og:image" content="https://aiblog.o-r.kr/og-image.png">
+    <meta property="og:image" content="https://diklight815.github.io/og-image.png">
     <meta property="og:locale" content="ko_KR">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://aiblog.o-r.kr/app.html">
+    <meta property="twitter:url" content="https://diklight815.github.io/app.html">
     <meta property="twitter:title" content="AI 블로그 생성 도구 - 무료 온라인 글쓰기 | AI 블로그 도구">
     <meta property="twitter:description" content="주제만 입력하면 AI가 자동으로 블로그 초안을 생성합니다. 무료로 사용 가능한 스마트 블로그 작성 도구입니다.">
-    <meta property="twitter:image" content="https://aiblog.o-r.kr/og-image.png">
+    <meta property="twitter:image" content="https://diklight815.github.io/og-image.png">
 
     <!-- Additional SEO -->
-    <link rel="canonical" href="https://aiblog.o-r.kr/app.html">
+    <link rel="canonical" href="https://diklight815.github.io/app.html">
     <meta name="theme-color" content="#8b5cf6">
 
     <!-- Favicon -->
@@ -57,7 +57,7 @@
         "@type": "WebApplication",
         "name": "AI 블로그 도구",
         "description": "OpenAI GPT를 활용한 무료 블로그 글쓰기 도구. 주제만 입력하면 AI가 자동으로 블로그 초안을 생성합니다.",
-        "url": "https://aiblog.o-r.kr/app.html",
+        "url": "https://diklight815.github.io/app.html",
         "applicationCategory": "ProductivityApplication",
         "operatingSystem": "Any",
         "offers": {
@@ -413,6 +413,7 @@
                     <button class="preview-tab" data-mode="seo">🎯 SEO 분석</button>
                     <button class="preview-tab" data-mode="serp">🔎 SERP 미리보기</button>
                     <button class="preview-tab" data-mode="similarity">🔍 유사도 검사</button>
+                    <button class="preview-tab" data-mode="imagePrompt">🖼️ 이미지 추천</button>
                 </div>
 
                 <!-- View Mode Toggles (shown only in preview mode) -->
@@ -903,6 +904,45 @@ strong, em, a, code, pre, hr, img
                     </div>
                 </div>
 
+                <!-- Image Prompt & Caption Panel -->
+                <div id="imagePromptPanel" class="image-prompt-panel hidden">
+                    <div class="image-prompt-header">
+                        <h3 class="image-prompt-title">🖼️ 이미지 프롬프트 & 캡션 추천</h3>
+                        <p class="image-prompt-desc">블로그 본문을 분석하여 각 섹션에 어울리는 이미지 생성 프롬프트와 캡션을 추천합니다.</p>
+                    </div>
+
+                    <div class="image-prompt-options">
+                        <div class="option-group">
+                            <label for="imageStyle">이미지 스타일</label>
+                            <select id="imageStyle">
+                                <option value="photo">📷 사진 (Photographic)</option>
+                                <option value="illustration">🎨 일러스트 (Illustration)</option>
+                                <option value="3d">🧊 3D 렌더링</option>
+                                <option value="flat">📐 플랫 디자인</option>
+                                <option value="watercolor">🖌️ 수채화</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label for="imageUsage">용도</label>
+                            <select id="imageUsage">
+                                <option value="blog">블로그 본문 삽입</option>
+                                <option value="thumbnail">썸네일 / 대표 이미지</option>
+                                <option value="social">소셜 미디어 공유용</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="image-prompt-actions">
+                        <button id="generateImagePromptsBtn" class="btn-analyze">
+                            <span class="btn-icon">🖼️</span>
+                            <span class="btn-text">이미지 프롬프트 생성</span>
+                        </button>
+                        <p class="analyze-note">※ API 키 없이도 로컬 생성 가능 (AI 사용 시 더 정확)</p>
+                    </div>
+
+                    <div id="imagePromptResults" class="image-prompt-results"></div>
+                </div>
+
                 <!-- Preview Area -->
                 <div id="previewContainer" class="preview-container hidden">
                     <!-- Table of Contents -->
@@ -1196,16 +1236,14 @@ strong, em, a, code, pre, hr, img
         <!-- Footer -->
         <footer class="footer">
             <div class="footer-content">
-                <!-- <p class="footer-text">
-                    🔓 오픈소스 프로젝트 ·
-                    <a href="https://github.com/diklight815/diklight815.github.io" target="_blank"
-                        rel="noopener noreferrer" class="footer-link">
-                        GitHub에서 코드 보기
-                    </a>
-                </p> -->
                 <p class="footer-note">
                     모든 데이터는 브라우저에만 저장되며 외부로 전송되지 않습니다
                 </p>
+                <div class="footer-app-links">
+                    <a href="/privacy.html" class="footer-link">개인정보처리방침</a>
+                    <span class="footer-divider">·</span>
+                    <a href="/terms.html" class="footer-link">이용약관</a>
+                </div>
                 <button id="resetAllDataBtn" class="btn-reset-all" type="button">
                     모든 데이터 초기화
                 </button>
